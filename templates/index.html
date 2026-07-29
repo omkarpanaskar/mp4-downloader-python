@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MP4 Video Downloader</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f0;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:2.5rem 1rem;color:#1a1a1a}
+.wrap{width:100%;max-width:580px}
+.card{background:#fff;border-radius:16px;border:0.5px solid rgba(0,0,0,0.1);padding:2rem 2.5rem;margin-bottom:1rem}
+.header{display:flex;align-items:center;gap:14px;margin-bottom:1.75rem}
+.icon-box{width:48px;height:48px;border-radius:13px;background:#e6f1fb;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.icon-box svg{width:24px;height:24px;color:#185fa5}
+h1{font-size:20px;font-weight:600}
+.sub{font-size:13px;color:#888;margin-top:2px}
+label{display:block;font-size:13px;font-weight:500;color:#555;margin-bottom:6px}
+.row{display:flex;gap:8px;margin-bottom:1rem}
+input[type=text]{flex:1;border:0.5px solid rgba(0,0,0,0.18);border-radius:10px;padding:10px 14px;font-size:14px;outline:none;background:#fafafa;transition:border-color .15s}
+input[type=text]:focus{border-color:#185fa5;background:#fff}
+.btn{background:#185fa5;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;transition:background .15s,transform .1s;white-space:nowrap}
+.btn:hover{background:#0c447c}
+.btn:active{transform:scale(.97)}
+.btn:disabled{background:#aaa;cursor:not-allowed}
+.btn-outline{background:transparent;color:#185fa5;border:0.5px solid #185fa5;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s}
+.btn-outline:hover{background:#e6f1fb}
+
+.preview{display:none;gap:16px;align-items:flex-start;margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:0.5px solid rgba(0,0,0,0.07)}
+.preview.show{display:flex}
+.thumb{width:130px;height:75px;border-radius:8px;object-fit:cover;background:#eee;flex-shrink:0}
+.meta h2{font-size:15px;font-weight:500;line-height:1.4;margin-bottom:4px}
+.meta .dur{font-size:12px;color:#888}
+
+.formats-label{font-size:13px;font-weight:500;color:#555;margin-bottom:10px}
+.formats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:1.25rem}
+.fmt-btn{border:0.5px solid rgba(0,0,0,0.15);border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#fafafa;transition:border-color .15s,background .15s}
+.fmt-btn:hover{border-color:#185fa5;background:#e6f1fb}
+.fmt-btn.selected{border:2px solid #185fa5;background:#e6f1fb}
+.fmt-res{font-size:15px;font-weight:600;color:#0c447c}
+.fmt-meta{font-size:11px;color:#888;margin-top:2px}
+.fmt-size{font-size:11px;color:#185fa5;margin-top:1px}
+
+.dl-btn-wrap{display:flex;gap:8px;align-items:center}
+
+.progress-box{display:none;margin-top:1rem;padding:1rem 1.25rem;border-radius:10px;border:0.5px solid rgba(0,0,0,0.08);background:#fafaf8}
+.progress-box.show{display:block}
+.prog-header{display:flex;justify-content:space-between;margin-bottom:8px}
+.prog-label{font-size:13px;color:#555}
+.prog-pct{font-size:13px;font-weight:600;color:#185fa5}
+.track{height:6px;background:#e0eaf6;border-radius:6px;overflow:hidden}
+.fill{height:100%;background:#185fa5;border-radius:6px;width:0%;transition:width .4s ease}
+.prog-msg{font-size:12px;color:#aaa;margin-top:5px}
+
+.result{display:none;margin-top:1rem;padding:1rem 1.25rem;border-radius:10px;background:#eaf3de;border:0.5px solid #c0dd97;align-items:center;gap:12px}
+.result.show{display:flex}
+.res-icon{width:36px;height:36px;border-radius:50%;background:#639922;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.res-icon svg{width:18px;height:18px;color:#fff}
+.res-info{flex:1}
+.res-name{font-size:13px;font-weight:500;color:#27500a;word-break:break-all}
+.res-sub{font-size:12px;color:#639922;margin-top:2px}
+a.dl-link{background:#639922;color:#fff;text-decoration:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:500;white-space:nowrap;transition:background .15s}
+a.dl-link:hover{background:#3b6d11}
+
+.err{display:none;margin-top:1rem;padding:.875rem 1.25rem;border-radius:10px;background:#fcebeb;border:0.5px solid #f7c1c1;font-size:13px;color:#791f1f}
+.err.show{display:block}
+
+.note{margin-top:1.5rem;padding-top:1rem;border-top:0.5px solid rgba(0,0,0,0.06);font-size:12px;color:#bbb;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+  <div class="header">
+    <div class="icon-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+      </svg>
+    </div>
+    <div>
+      <h1>MP4 Video Downloader</h1>
+      <div class="sub">Download any video in the highest available resolution</div>
+    </div>
+  </div>
+
+  <label for="url">Video URL</label>
+  <div class="row">
+    <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..."/>
+    <button class="btn" id="fetch-btn" onclick="fetchInfo()">Fetch</button>
+  </div>
+
+  <div class="preview" id="preview">
+    <img class="thumb" id="thumb" src="" alt="thumbnail"/>
+    <div class="meta">
+      <h2 id="vid-title"></h2>
+      <div class="dur" id="vid-dur"></div>
+    </div>
+  </div>
+
+  <div id="formats-section" style="display:none">
+    <div class="formats-label">Select resolution</div>
+    <div class="formats-grid" id="formats-grid"></div>
+    <div class="dl-btn-wrap">
+      <button class="btn" id="dl-btn" onclick="startDownload()" disabled>Download MP4</button>
+      <span id="sel-label" style="font-size:13px;color:#888"></span>
+    </div>
+  </div>
+
+  <div class="progress-box" id="prog-box">
+    <div class="prog-header">
+      <span class="prog-label" id="prog-label">Downloading...</span>
+      <span class="prog-pct" id="prog-pct">0%</span>
+    </div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="prog-msg" id="prog-msg"></div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="res-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="res-info">
+      <div class="res-name" id="res-name"></div>
+      <div class="res-sub">Ready to download</div>
+    </div>
+    <a class="dl-link" id="dl-link" href="#">Download</a>
+  </div>
+
+  <div class="err" id="err"></div>
+
+  <div class="note">
+    Supports YouTube, Vimeo, Twitter/X, Instagram, TikTok, Facebook &amp; 1000+ sites.<br>
+    Requires ffmpeg for merging high-res video + audio streams.
+  </div>
+</div>
+</div>
+
+<script>
+let selectedFormat = null;
+let videoTitle = "";
+let videoUrl = "";
+let pollTimer = null;
+
+function fmt_size(bytes) {
+  if (!bytes) return "";
+  if (bytes > 1e9) return (bytes/1e9).toFixed(1) + " GB";
+  if (bytes > 1e6) return (bytes/1e6).toFixed(0) + " MB";
+  return (bytes/1e3).toFixed(0) + " KB";
+}
+
+function fmt_dur(s) {
+  if (!s) return "";
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if (h) return `${h}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+  return `${m}:${String(sec).padStart(2,"0")}`;
+}
+
+async function fetchInfo() {
+  const url = document.getElementById("url").value.trim();
+  if (!url) return;
+  videoUrl = url;
+  hideAll();
+  document.getElementById("fetch-btn").disabled = true;
+  document.getElementById("fetch-btn").textContent = "Loading...";
+
+  try {
+    const r = await fetch("/info", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+    const data = await r.json();
+    if (data.error) { showErr(data.error); return; }
+
+    videoTitle = data.title;
+    document.getElementById("vid-title").textContent = data.title;
+    document.getElementById("vid-dur").textContent = fmt_dur(data.duration);
+    if (data.thumbnail) {
+      document.getElementById("thumb").src = data.thumbnail;
+      document.getElementById("preview").classList.add("show");
+    }
+
+    const grid = document.getElementById("formats-grid");
+    grid.innerHTML = "";
+    data.formats.forEach(f => {
+      const d = document.createElement("div");
+      d.className = "fmt-btn";
+      d.innerHTML = `<div class="fmt-res">${f.label}</div><div class="fmt-meta">${f.ext.toUpperCase()}${f.fps ? " · " + Math.round(f.fps) + "fps" : ""}</div><div class="fmt-size">${fmt_size(f.filesize)}</div>`;
+      d.onclick = () => selectFmt(f, d);
+      grid.appendChild(d);
+    });
+
+    if (data.formats.length > 0) {
+      const first = grid.firstChild;
+      selectFmt(data.formats[0], first);
+    }
+
+    document.getElementById("formats-section").style.display = "block";
+  } catch(e) {
+    showErr("Could not fetch video info. Check the URL and try again.");
+  } finally {
+    document.getElementById("fetch-btn").disabled = false;
+    document.getElementById("fetch-btn").textContent = "Fetch";
+  }
+}
+
+function selectFmt(f, el) {
+  selectedFormat = f;
+  document.querySelectorAll(".fmt-btn").forEach(b => b.classList.remove("selected"));
+  el.classList.add("selected");
+  document.getElementById("dl-btn").disabled = false;
+  document.getElementById("sel-label").textContent = f.label + (f.filesize ? " · ~" + fmt_size(f.filesize) : "");
+}
+
+async function startDownload() {
+  if (!selectedFormat) return;
+  hideResult(); hideErr();
+  document.getElementById("dl-btn").disabled = true;
+  setProgress(0, "Queued...", "Starting");
+  document.getElementById("prog-box").classList.add("show");
+
+  try {
+    const r = await fetch("/download", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({url: videoUrl, format_id: selectedFormat.format_id, title: videoTitle})
+    });
+    const data = await r.json();
+    if (data.error) { showErr(data.error); return; }
+    poll(data.job_id);
+  } catch(e) {
+    showErr("Server error. Is the app running?");
+    document.getElementById("dl-btn").disabled = false;
+  }
+}
+
+function poll(jobId) {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const r = await fetch(`/status/${jobId}`);
+      const d = await r.json();
+      if (d.status === "downloading") {
+        setProgress(d.progress, d.message, "Downloading");
+      } else if (d.status === "merging") {
+        setProgress(95, "Merging audio + video...", "Merging");
+      } else if (d.status === "queued") {
+        setProgress(0, "Queued...", "Queued");
+      } else if (d.status === "done") {
+        clearInterval(pollTimer);
+        document.getElementById("prog-box").classList.remove("show");
+        showResult(d.filename, jobId);
+        document.getElementById("dl-btn").disabled = false;
+      } else if (d.status === "error") {
+        clearInterval(pollTimer);
+        document.getElementById("prog-box").classList.remove("show");
+        showErr(d.message);
+        document.getElementById("dl-btn").disabled = false;
+      }
+    } catch(e) {}
+  }, 800);
+}
+
+function setProgress(pct, msg, label) {
+  document.getElementById("fill").style.width = pct + "%";
+  document.getElementById("prog-pct").textContent = pct + "%";
+  document.getElementById("prog-label").textContent = label || "Working";
+  document.getElementById("prog-msg").textContent = msg || "";
+}
+
+function showResult(filename, jobId) {
+  document.getElementById("res-name").textContent = filename;
+  document.getElementById("dl-link").href = `/file/${jobId}`;
+  document.getElementById("result").classList.add("show");
+}
+
+function showErr(msg) {
+  const el = document.getElementById("err");
+  el.textContent = "Error: " + msg;
+  el.classList.add("show");
+}
+
+function hideAll() {
+  hideResult(); hideErr();
+  document.getElementById("prog-box").classList.remove("show");
+  document.getElementById("preview").classList.remove("show");
+  document.getElementById("formats-section").style.display = "none";
+  if (pollTimer) clearInterval(pollTimer);
+}
+
+function hideResult() { document.getElementById("result").classList.remove("show"); }
+function hideErr() { document.getElementById("err").classList.remove("show"); }
+
+document.getElementById("url").addEventListener("keydown", e => { if(e.key==="Enter") fetchInfo(); });
+</script>
+</body>
+</html>
