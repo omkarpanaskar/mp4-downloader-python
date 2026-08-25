@@ -23,17 +23,34 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+    - name: Create virtual environment
+      run: python -m venv .venv
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        .venv/bin/python -m pip install --upgrade pip
+        .venv/bin/python -m pip install flake8 pytest
+        if [ -f requirements.txt ]; then .venv/bin/python -m pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        .venv/bin/python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        .venv/bin/python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        py app.py
+        .venv/bin/python -m pytest -q
+
+  docker:
+    name: Build and smoke test Docker image
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build Docker image
+      run: docker build --tag mp4-downloader:ci .
+    - name: Start Docker container
+      run: docker run --detach --name mp4-downloader-ci --publish 5000:5000 mp4-downloader:ci
+    - name: Check application health
+      run: curl --fail --retry 10 --retry-all-errors --retry-delay 1 http://127.0.0.1:5000/
+    - name: Stop Docker container
+      if: always()
+      run: docker stop mp4-downloader-ci
